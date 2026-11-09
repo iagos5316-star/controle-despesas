@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Despesas</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 10px; }
+        .header { background-color: #a9d08e; text-align: center; padding: 10px; font-weight: bold; font-size: 20px; margin-bottom: 20px; text-transform: uppercase;}
+        
+        /* Abas */
+        .tabs { display: flex; margin-bottom: 20px; gap: 5px; }
+        .tab-btn { flex: 1; padding: 10px; text-align: center; background: #ddd; border: none; cursor: pointer; font-weight: bold; border-radius: 5px 5px 0 0; font-size: 14px;}
+        .tab-btn.active { background: #b4c6e7; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Tabelas */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background: white; font-size: 14px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: right; }
+        th { background-color: #b4c6e7; text-align: center; }
+        td:first-child, th:first-child { text-align: left; }
+        .total-row { background-color: #e2e2e2; font-weight: bold; }
+        
+        /* Formulário e Filtros */
+        form, .filtro-box { background: white; padding: 15px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1); margin-bottom: 15px;}
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px;}
+        .form-group input, .form-group select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        
+        button[type="submit"] { width: 100%; padding: 10px; background-color: #4CAF50; color: white; border: none; font-size: 16px; border-radius: 4px; cursor: pointer; font-weight: bold;}
+        button[type="submit"]:hover { background-color: #45a049; }
+        
+        .btn-danger { background:#d9534f; color:white; padding:10px; border:none; width:100%; border-radius:4px; cursor:pointer; font-weight:bold;}
+    </style>
+</head>
+<body>
+
+    <div class="header">Meu Controle Financeiro</div>
+
+    <!-- Menu de Abas -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab(event, 'lancamentos')">Lançamentos</button>
+        <button class="tab-btn" onclick="openTab(event, 'resumo')">Resumo Mês</button>
+        <button class="tab-btn" onclick="openTab(event, 'historico')">Histórico</button>
+    </div>
+
+    <!-- ABA 1: LANÇAMENTOS -->
+    <div id="lancamentos" class="tab-content active">
+        <form id="form-lancamento" onsubmit="adicionarLancamento(event)">
+            <div class="form-group">
+                <label>Mês de Referência:</label>
+                <input type="month" id="mes" required>
+            </div>
+            <div class="form-group">
+                <label>Tipo:</label>
+                <select id="tipo" required>
+                    <option value="renda">Renda (Receita)</option>
+                    <option value="despesa">Despesa</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Categoria:</label>
+                <select id="categoria" required>
+                    <option value="Salário">Salário / Renda Extra</option>
+                    <option value="Moradia">Despesas de Moradia</option>
+                    <option value="Transporte">Transporte</option>
+                    <option value="Saúde">Saúde</option>
+                    <option value="Vida Diária">Vida Diária (Mercado, Celular)</option>
+                    <option value="Entretenimento">Entretenimento</option>
+                    <option value="Economias">Economias / Poupança</option>
+                    <option value="Obrigações">Obrigações (Cartão, Empréstimo)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Descrição:</label>
+                <input type="text" id="descricao" placeholder="Ex: Conta de Luz" required>
+            </div>
+            <div class="form-group">
+                <label>Valor (R$):</label>
+                <input type="number" id="valor" step="0.01" required>
+            </div>
+            <button type="submit">Salvar Lançamento</button>
+        </form>
+    </div>
+
+    <!-- ABA 2: RESUMO DO MÊS -->
+    <div id="resumo" class="tab-content">
+        <div class="filtro-box">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">Selecione o mês para ver o detalhamento:</label>
+            <input type="month" id="filtro_resumo" onchange="atualizarResumo()" style="padding: 8px; width: 100%; box-sizing: border-box;">
+        </div>
+
+        <table id="tabela-resumo">
+            <tr><th>Categoria</th><th>Total Gasto</th></tr>
+            <!-- Gerado pelo JS -->
+        </table>
+
+        <table>
+            <tr><th>RESUMO DO MÊS</th><th>Total</th></tr>
+            <tr><td>Renda Total</td><td id="renda-total">R$ 0,00</td></tr>
+            <tr><td>Despesas Totais</td><td id="despesa-total">R$ 0,00</td></tr>
+            <tr class="total-row"><td>SALDO</td><td id="saldo-total">R$ 0,00</td></tr>
+        </table>
+    </div>
+
+    <!-- ABA 3: HISTÓRICO MENSAL -->
+    <div id="historico" class="tab-content">
+        <table id="tabela-historico">
+            <tr>
+                <th>Mês</th>
+                <th>Receitas</th>
+                <th>Despesas</th>
+                <th>Saldo</th>
+            </tr>
+            <!-- Gerado pelo JS -->
+        </table>
+        
+        <button class="btn-danger" onclick="limparDados()">Apagar Todos os Dados</button>
+    </div>
+
+    <script>
+        // Carrega os dados ou cria um array vazio
+        let lancamentos = JSON.parse(localStorage.getItem('meusLancamentos')) || [];
+
+        // Define o mês atual como padrão nos campos de data assim que abre o app
+        window.onload = function() {
+            const hoje = new Date();
+            const mesAtual = hoje.toISOString().slice(0, 7); // Pega no formato YYYY-MM
+            document.getElementById('mes').value = mesAtual;
+            document.getElementById('filtro_resumo').value = mesAtual;
+            atualizarResumo();
+        };
+
+        // Navegação entre abas
+        function openTab(event, tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+            
+            // Atualiza a tela dependendo da aba que foi aberta
+            if(tabName === 'resumo') atualizarResumo();
+            if(tabName === 'historico') atualizarHistorico();
+        }
+
+        // Salvar Lançamento
+        function adicionarLancamento(event) {
+            event.preventDefault();
+            
+            const novoLancamento = {
+                mes: document.getElementById('mes').value, // Ex: "2023-11"
+                tipo: document.getElementById('tipo').value,
+                categoria: document.getElementById('categoria').value,
+                descricao: document.getElementById('descricao').value,
+                valor: parseFloat(document.getElementById('valor').value)
+            };
+
+            lancamentos.push(novoLancamento);
+            localStorage.setItem('meusLancamentos', JSON.stringify(lancamentos));
+            
+            alert('Lançamento salvo!');
+            document.getElementById('form-lancamento').reset();
+            
+            // Restaura o mês atual no formulário após limpar
+            const hoje = new Date();
+            document.getElementById('mes').value = hoje.toISOString().slice(0, 7);
+        }
+
+        // Atualiza a Aba "Resumo Mês"
+        function atualizarResumo() {
+            const mesFiltro = document.getElementById('filtro_resumo').value;
+            
+            let rendaTotal = 0;
+            let despesaTotal = 0;
+            let gastosPorCategoria = {};
+
+            // Filtra apenas os lançamentos do mês selecionado
+            const lancamentosDoMes = lancamentos.filter(item => item.mes === mesFiltro);
+
+            lancamentosDoMes.forEach(item => {
+                if (item.tipo === 'renda') {
+                    rendaTotal += item.valor;
+                } else {
+                    despesaTotal += item.valor;
+                    if (!gastosPorCategoria[item.categoria]) {
+                        gastosPorCategoria[item.categoria] = 0;
+                    }
+                    gastosPorCategoria[item.categoria] += item.valor;
+                }
+            });
+
+            // Atualiza Tabela de Cima (Categorias)
+            const tabela = document.getElementById('tabela-resumo');
+            tabela.innerHTML = '<tr><th>Categoria</th><th>Total Gasto</th></tr>';
+            
+            // Ordena as categorias da que gastou mais para a que gastou menos
+            const categoriasOrdenadas = Object.entries(gastosPorCategoria).sort((a, b) => b[1] - a[1]);
+
+            if (categoriasOrdenadas.length === 0) {
+                tabela.innerHTML += '<tr><td colspan="2" style="text-align:center;">Nenhuma despesa neste mês.</td></tr>';
+            } else {
+                for (const [categoria, valor] of categoriasOrdenadas) {
+                    const row = tabela.insertRow();
+                    row.insertCell(0).innerText = categoria;
+                    const cell2 = row.insertCell(1);
+                    cell2.innerText = formatarMoeda(valor);
+                    cell2.style.color = '#c00000'; // Vermelho escuro para despesas
+                }
+            }
+
+            // Atualiza Tabela de Baixo (Totais)
+            document.getElementById('renda-total').innerText = formatarMoeda(rendaTotal);
+            document.getElementById('despesa-total').innerText = formatarMoeda(despesaTotal);
+            
+            const saldo = rendaTotal - despesaTotal;
+            const saldoElement = document.getElementById('saldo-total');
+            saldoElement.innerText = formatarMoeda(saldo);
+            saldoElement.style.color = saldo < 0 ? '#c00000' : '#006100';
+        }
+
+        // Atualiza a Aba "Histórico"
+        function atualizarHistorico() {
+            const tabela = document.getElementById('tabela-historico');
+            tabela.innerHTML = `
+                <tr>
+                    <th>Mês</th><th>Receitas</th><th>Despesas</th><th>Saldo</th>
+                </tr>`;
+
+            let totaisMensais = {};
+
+            // Agrupa os valores por mês
+            lancamentos.forEach(item => {
+                if (!totaisMensais[item.mes]) {
+                    totaisMensais[item.mes] = { renda: 0, despesa: 0 };
+                }
+                if (item.tipo === 'renda') {
+                    totaisMensais[item.mes].renda += item.valor;
+                } else {
+                    totaisMensais[item.mes].despesa += item.valor;
+                }
+            });
+
+            // Pega os meses e ordena do mais recente para o mais antigo
+            const mesesOrdenados = Object.keys(totaisMensais).sort().reverse();
+
+            if (mesesOrdenados.length === 0) {
+                tabela.innerHTML += '<tr><td colspan="4" style="text-align:center;">Nenhum lançamento registrado.</td></tr>';
+                return;
+            }
+
+            mesesOrdenados.forEach(mes => {
+                const dados = totaisMensais[mes];
+                const saldoMes = dados.renda - dados.despesa;
+                
+                // Formata o mês de "2023-11" para "Novembro/2023"
+                const [ano, mesNum] = mes.split('-');
+                const dataObj = new Date(ano, mesNum - 1, 1);
+                const nomeMes = dataObj.toLocaleString('pt-BR', { month: 'long' });
+                const nomeMesFormatado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+
+                const row = tabela.insertRow();
+                row.insertCell(0).innerText = `${nomeMesFormatado}/${ano}`;
+                
+                const cellRenda = row.insertCell(1);
+                cellRenda.innerText = formatarMoeda(dados.renda);
+                cellRenda.style.color = '#006100';
+                
+                const cellDespesa = row.insertCell(2);
+                cellDespesa.innerText = formatarMoeda(dados.despesa);
+                cellDespesa.style.color = '#c00000';
+                
+                const cellSaldo = row.insertCell(3);
+                cellSaldo.innerText = formatarMoeda(saldoMes);
+                cellSaldo.style.fontWeight = 'bold';
+                cellSaldo.style.color = saldoMes < 0 ? '#c00000' : '#333';
+            });
+        }
+
+        function formatarMoeda(valor) {
+            return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function limparDados() {
+            if(confirm('ATENÇÃO: Isso apagará TODOS os lançamentos de TODOS os meses. Tem certeza?')) {
+                localStorage.removeItem('meusLancamentos');
+                lancamentos = [];
+                atualizarResumo();
+                atualizarHistorico();
+            }
+        }
+    </script>
+</body>
+</html>
